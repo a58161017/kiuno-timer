@@ -12,6 +12,7 @@ import '../../../domain/entities/timer_model.dart';
 import '../../../domain/entities/timer_status.dart'; // 雖然這裡沒直接用，但 TimerModel 依賴它
 
 const String _timersStorageKey = 'kiuno_timers_list';
+const String _continuousAlertStopActionId = 'STOP_CONTINUOUS_ALERT';
 
 const AndroidNotificationChannel _timerFinishedChannel = AndroidNotificationChannel(
   'kiuno_timer_finished',
@@ -153,6 +154,7 @@ class TimerListNotifier extends StateNotifier<List<TimerModel>> {
     }
     _activeTimers[timerId]?.cancel();
     _activeTimers.remove(timerId);
+    _cancelNotificationForTimer(timerId);
 
     final timerIndex = state.indexWhere((t) => t.id == timerId);
     if (timerIndex == -1) return;
@@ -213,7 +215,10 @@ class TimerListNotifier extends StateNotifier<List<TimerModel>> {
         iOS: iosSettings,
       );
 
-      await _localNotifications.initialize(initializationSettings);
+      await _localNotifications.initialize(
+        initializationSettings,
+        onDidReceiveNotificationResponse: _handleNotificationResponse,
+      );
 
       final androidImplementation = _localNotifications
           .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
@@ -341,15 +346,29 @@ class TimerListNotifier extends StateNotifier<List<TimerModel>> {
     }
 
     try {
+      final AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+        _timerFinishedChannel.id,
+        _timerFinishedChannel.name,
+        channelDescription: _timerFinishedChannel.description,
+        importance: Importance.max,
+        priority: Priority.high,
+        ticker: 'Timer finished',
+        autoCancel: !timer.alertUntilStopped,
+        ongoing: timer.alertUntilStopped,
+        actions: timer.alertUntilStopped
+            ? const <AndroidNotificationAction>[
+                AndroidNotificationAction(
+                  _continuousAlertStopActionId,
+                  'Stop',
+                  showsUserInterface: false,
+                  cancelNotification: true,
+                ),
+              ]
+            : null,
+      );
+
       final NotificationDetails notificationDetails = NotificationDetails(
-        android: AndroidNotificationDetails(
-          _timerFinishedChannel.id,
-          _timerFinishedChannel.name,
-          channelDescription: _timerFinishedChannel.description,
-          importance: Importance.max,
-          priority: Priority.high,
-          ticker: 'Timer finished',
-        ),
+        android: androidDetails,
         iOS: const DarwinNotificationDetails(
           presentAlert: true,
           presentBadge: true,
@@ -362,6 +381,7 @@ class TimerListNotifier extends StateNotifier<List<TimerModel>> {
         '計時完成',
         '${timer.name} 已經結束',
         notificationDetails,
+        payload: timer.id,
       );
     } catch (e) {
       print('Error showing notification: $e');
@@ -414,6 +434,7 @@ class TimerListNotifier extends StateNotifier<List<TimerModel>> {
     _currentlyAlertingTimerId = null;
 
     if (previousAlertingId != null) {
+      _cancelNotificationForTimer(previousAlertingId);
       final timerToUpdate = _findTimerById(previousAlertingId);
       if (timerToUpdate.id.isNotEmpty && timerToUpdate.status == TimerStatus.alerting) {
         // 只有當它確實處於 alerting 狀態時才改回 finished
@@ -440,6 +461,19 @@ class TimerListNotifier extends StateNotifier<List<TimerModel>> {
     } catch (e) {
       return _dummyTimerModel();
     }
+  }
+
+  void _handleNotificationResponse(NotificationResponse response) {
+    if (response.actionId == _continuousAlertStopActionId && response.payload != null) {
+      resetTimer(response.payload!);
+    }
+  }
+
+  void _cancelNotificationForTimer(String timerId) {
+    if (!_notificationsInitialized) {
+      return;
+    }
+    _localNotifications.cancel(timerId.hashCode);
   }
 }
 
