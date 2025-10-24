@@ -34,7 +34,7 @@ class MyApp extends StatelessWidget {
           bodyColor: const Color(0xFF1B102A),
         ),
         scaffoldBackgroundColor: const Color(0xFFF7F2FB),
-        cardTheme: CardTheme(
+        cardTheme: CardThemeData(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         ),
         filledButtonTheme: FilledButtonThemeData(
@@ -53,7 +53,7 @@ class MyApp extends StatelessWidget {
           seedColor: seed,
           brightness: Brightness.dark,
         ),
-        cardTheme: CardTheme(
+        cardTheme: CardThemeData(
           color: const Color(0xFF1E1A29),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         ),
