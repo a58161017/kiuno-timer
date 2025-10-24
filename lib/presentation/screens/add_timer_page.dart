@@ -1,11 +1,17 @@
-// lib/presentation/screens/add_timer_page.dart
+// A page for creating or editing a timer.
+//
+// This widget allows the user to input a name, choose minutes and seconds,
+// toggle whether the timer should alert until stopped, and save or update the
+// timer. When editing an existing timer, the form is pre-filled and saving
+// updates the existing entry.
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
-import '../../../../../application/timer_list_provider.dart';
-import '../../../../../domain/entities/timer_model.dart';
+import '../../../application/timer_list_provider.dart';
+import '../../../domain/entities/timer_model.dart';
 
 class AddTimerPage extends ConsumerStatefulWidget {
   const AddTimerPage({super.key, this.timerToEdit});
@@ -40,22 +46,19 @@ class _AddTimerPageState extends ConsumerState<AddTimerPage> {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
         title: Text(_timerToEdit != null ? 'Edit Timer' : 'Add New Timer'),
-        backgroundColor: Theme
-            .of(context)
-            .colorScheme
-            .primaryContainer,
+        backgroundColor: colorScheme.primaryContainer,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
-          // 將 Column 替換為 ListView 以防止內容溢出，特別是添加新控件後
           child: ListView(
             children: <Widget>[
-              // 計時器名稱輸入框
               TextFormField(
                 initialValue: _timerName,
                 decoration: const InputDecoration(
@@ -74,8 +77,6 @@ class _AddTimerPageState extends ConsumerState<AddTimerPage> {
                 },
               ),
               const SizedBox(height: 20),
-
-              // 時間輸入 (分鐘和秒)
               Row(
                 children: <Widget>[
                   Expanded(
@@ -87,12 +88,9 @@ class _AddTimerPageState extends ConsumerState<AddTimerPage> {
                         hintText: '0',
                       ),
                       keyboardType: TextInputType.number,
-                      inputFormatters: <TextInputFormatter>[
-                        FilteringTextInputFormatter.digitsOnly
-                      ],
-                      // 移除 validator，在 _saveTimer 中統一校驗總時長
+                      inputFormatters: <TextInputFormatter>[FilteringTextInputFormatter.digitsOnly],
                       onSaved: (value) {
-                        _inputMinutes = int.tryParse(value ?? "");
+                        _inputMinutes = int.tryParse(value ?? '');
                       },
                     ),
                   ),
@@ -109,10 +107,8 @@ class _AddTimerPageState extends ConsumerState<AddTimerPage> {
                         hintText: '0',
                       ),
                       keyboardType: TextInputType.number,
-                      inputFormatters: <TextInputFormatter>[
-                        FilteringTextInputFormatter.digitsOnly
-                      ],
-                      validator: (value) { // 可以保留對秒數的基礎驗證 (0-59)
+                      inputFormatters: <TextInputFormatter>[FilteringTextInputFormatter.digitsOnly],
+                      validator: (value) {
                         if (value != null && value.isNotEmpty) {
                           final int? seconds = int.tryParse(value);
                           if (seconds == null || seconds < 0 || seconds > 59) {
@@ -122,52 +118,40 @@ class _AddTimerPageState extends ConsumerState<AddTimerPage> {
                         return null;
                       },
                       onSaved: (value) {
-                        _inputSeconds = int.tryParse(value ?? "");
+                        _inputSeconds = int.tryParse(value ?? '');
                       },
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 20), // 調整間距
-
-              // --- 新增 CheckboxListTile ---
+              const SizedBox(height: 20),
               CheckboxListTile(
-                title: const Text("Alert until stopped"),
-                subtitle: const Text("Plays sound and vibrates repeatedly until manually stopped."),
+                title: const Text('Alert until stopped'),
+                subtitle: const Text(
+                  'Plays sound and vibrates repeatedly until manually stopped.',
+                ),
                 value: _alertUntilStopped,
                 onChanged: (bool? newValue) {
-                  setState(() { // 使用 StatefulWidget 的 setState 來更新 UI
+                  setState(() {
                     _alertUntilStopped = newValue ?? false;
                   });
                 },
                 controlAffinity: ListTileControlAffinity.leading,
-                // Checkbox 在左邊
                 contentPadding: EdgeInsets.zero,
-                // 移除預設 padding 使其更緊湊
-                activeColor: Theme
-                    .of(context)
-                    .colorScheme
-                    .primary,
+                activeColor: colorScheme.primary,
               ),
-              // --- CheckboxListTile 結束 ---
-
               const SizedBox(height: 30),
-
-              // 保存按鈕
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16.0),
-                  backgroundColor: Theme
-                      .of(context)
-                      .colorScheme
-                      .primary,
-                  foregroundColor: Theme
-                      .of(context)
-                      .colorScheme
-                      .onPrimary,
+                  backgroundColor: colorScheme.primary,
+                  foregroundColor: colorScheme.onPrimary,
                 ),
                 onPressed: _submitForm,
-                child: const Text('Save Timer', style: TextStyle(fontSize: 16)),
+                child: Text(
+                  'Save Timer',
+                  style: textTheme.titleMedium,
+                ),
               ),
             ],
           ),
@@ -181,35 +165,37 @@ class _AddTimerPageState extends ConsumerState<AddTimerPage> {
       _formKey.currentState!.save();
       final int minutes = _inputMinutes ?? 0;
       final int seconds = _inputSeconds ?? 0;
-
+      final totalDuration = Duration(minutes: minutes, seconds: seconds);
+      final notifier = ref.read(timerListProvider.notifier);
       if (_timerToEdit == null) {
         final newTimer = TimerModel(
           id: _uuid.v4(),
           name: _timerName,
-          totalDuration: Duration(minutes: minutes, seconds: seconds),
+          totalDuration: totalDuration,
           alertUntilStopped: _alertUntilStopped,
         );
-        ref.read(timerListProvider.notifier).addTimer(newTimer);
+        notifier.addTimer(newTimer);
       } else {
         final updatedTimer = _timerToEdit!.copyWith(
           name: _timerName,
-          totalDuration: Duration(minutes: minutes, seconds: seconds),
+          totalDuration: totalDuration,
           alertUntilStopped: _alertUntilStopped,
         );
-        ref.read(timerListProvider.notifier).editTimer(updatedTimer);
+        notifier.editTimer(updatedTimer);
       }
       Navigator.of(context).pop();
     }
   }
 
   void _cancelTimer(String timerId) {
+    final notifier = ref.read(timerListProvider.notifier);
     if (_timerToEdit!.isRunning) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(timerListProvider.notifier).pauseTimer(_timerToEdit!.id);
+        notifier.pauseTimer(_timerToEdit!.id);
       });
     } else if (_timerToEdit!.isAlerting) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(timerListProvider.notifier).resetTimer(_timerToEdit!.id);
+        notifier.resetTimer(_timerToEdit!.id);
       });
     }
   }

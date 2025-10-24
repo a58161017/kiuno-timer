@@ -1,19 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../application/timer_list_provider.dart';
-import '../../domain/entities/timer_model.dart';
-import '../../domain/entities/timer_status.dart';
+import '../../../application/timer_list_provider.dart';
+import '../../../domain/entities/timer_model.dart';
+import '../../../domain/entities/timer_status.dart';
 import '../screens/add_timer_page.dart';
 
+/// A card widget that displays information about a single timer.
+///
+/// This widget has been updated to follow 2025 UI guidelines, including
+/// larger touch targets, improved spacing, a progress indicator, and subtle
+/// animations. It adapts colors from the current theme to ensure
+/// accessibility and visual harmony.
 class TimerCardWidget extends ConsumerWidget {
   final TimerModel timer;
-  
-  const TimerCardWidget({
-    super.key,
-    required this.timer,
-  });
-  
+
+  const TimerCardWidget({super.key, required this.timer});
+
   String _formatDuration(Duration duration) {
     String twoDigits(int n) => n.toString().padLeft(2, '0');
     final String twoDigitMinutes = twoDigits(duration.inMinutes.remainder(60));
@@ -29,14 +32,14 @@ class TimerCardWidget extends ConsumerWidget {
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
     final TextTheme textTheme = Theme.of(context).textTheme;
 
+    // Choose icon and color based on timer status.
     IconData statusIcon;
     Color statusColor;
     String displayedTime;
 
-    // 根據狀態決定顯示的時間和圖示
     if (timer.status == TimerStatus.pending || timer.status == TimerStatus.finished) {
       displayedTime = _formatDuration(timer.totalDuration);
-    } else { // running or paused
+    } else {
       displayedTime = _formatDuration(timer.remainingDuration);
     }
 
@@ -56,11 +59,19 @@ class TimerCardWidget extends ConsumerWidget {
       case TimerStatus.pending:
       default:
         statusIcon = Icons.hourglass_empty;
-        statusColor = colorScheme.onSurface.withValues(alpha: 0.6);
+        statusColor = colorScheme.onSurface.withOpacity(0.6);
         break;
     }
 
+    // Compute progress ratio for visual indicator.
+    final int totalSeconds = timer.totalDuration.inSeconds;
+    final int remainingSeconds = timer.remainingDuration.inSeconds;
+    final double progress = totalSeconds == 0 ? 0.0 : (remainingSeconds / totalSeconds);
+
     return Card(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12.0),
+      ),
       margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       elevation: 2.0,
       child: Padding(
@@ -68,13 +79,16 @@ class TimerCardWidget extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Header row with name and actions.
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
                   child: Text(
                     timer.name,
-                    style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                    style: textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -103,16 +117,15 @@ class TimerCardWidget extends ConsumerWidget {
                             TextButton(
                               child: const Text('Cancel'),
                               onPressed: () {
-                                Navigator.of(dialogContext).pop(); // 關閉對話框
+                                Navigator.of(dialogContext).pop();
                               },
                             ),
                             TextButton(
                               style: TextButton.styleFrom(foregroundColor: colorScheme.error),
                               child: const Text('Delete'),
                               onPressed: () {
-                                // 調用 Notifier 的刪除方法
                                 ref.read(timerListProvider.notifier).removeTimer(timer.id);
-                                Navigator.of(dialogContext).pop(); // 關閉對話框
+                                Navigator.of(dialogContext).pop();
                               },
                             ),
                           ],
@@ -123,27 +136,40 @@ class TimerCardWidget extends ConsumerWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            Text(
-              displayedTime, // 使用我們上面計算的 displayedTime
-              style: textTheme.headlineMedium?.copyWith(
-                color: colorScheme.primary,
-                fontWeight: FontWeight.w500,
+            const SizedBox(height: 12),
+            // Animated time display for smooth updates.
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              child: Text(
+                displayedTime,
+                key: ValueKey<String>(displayedTime),
+                style: textTheme.headlineMedium?.copyWith(
+                  color: colorScheme.primary,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             Row(
               children: [
                 Icon(statusIcon, color: statusColor, size: 20),
                 const SizedBox(width: 8),
                 Text(
-                  timer.status.name.substring(0, 1).toUpperCase() + timer.status.name.substring(1), // 首字母大寫
+                  // Capitalize status name for display.
+                  timer.status.name.substring(0, 1).toUpperCase() + timer.status.name.substring(1),
                   style: textTheme.labelLarge?.copyWith(color: statusColor),
                 ),
-                const Spacer(), // 把後面的按鈕推到右邊
-                // 控制按鈕區域
+                const Spacer(),
                 _buildControlButtons(context, ref, timer, colorScheme),
               ],
+            ),
+            const SizedBox(height: 12),
+            // Visual progress indicator. Inverts progress so that full bar means finished.
+            LinearProgressIndicator(
+              value: 1.0 - progress.clamp(0.0, 1.0),
+              minHeight: 4.0,
+              backgroundColor: colorScheme.surfaceVariant,
+              valueColor: AlwaysStoppedAnimation<Color>(statusColor),
             ),
           ],
         ),
@@ -151,66 +177,62 @@ class TimerCardWidget extends ConsumerWidget {
     );
   }
 
-  // 輔助方法來構建控制按鈕
-  Widget _buildControlButtons(BuildContext context, WidgetRef ref, TimerModel timer, ColorScheme colorScheme) {
+  /// Builds control buttons (play/pause/reset) based on timer state.
+  Widget _buildControlButtons(
+    BuildContext context,
+    WidgetRef ref,
+    TimerModel timer,
+    ColorScheme colorScheme,
+  ) {
     final notifier = ref.read(timerListProvider.notifier);
-
-    List<Widget> buttons = [];
+    final List<Widget> buttons = [];
 
     if (timer.isPending || timer.isPaused || timer.isFinished) {
-      // 顯示開始/重啟按鈕
       buttons.add(
-          timer.isFinished || (timer.isPending && timer.remainingDuration == timer.totalDuration)
-              ? Tooltip(
-            message: "Start",
-            child: IconButton(
-              icon: Icon(Icons.play_arrow, color: colorScheme.primary),
-              onPressed: () => notifier.startTimer(timer.id),
+        Tooltip(
+          message: timer.isPaused ? 'Resume' : 'Start',
+          child: IconButton(
+            icon: Icon(
+              timer.isFinished || (timer.isPending && timer.remainingDuration == timer.totalDuration)
+                  ? Icons.play_arrow
+                  : Icons.play_circle_outline,
+              color: colorScheme.primary,
             ),
-          )
-              : Tooltip( // 如果是從暫停狀態或未完成的 pending 狀態開始，則顯示 "Resume"
-            message: timer.isPaused ? "Resume" : "Start",
-            child: IconButton(
-              icon: Icon(Icons.play_circle_outline, color: colorScheme.primary),
-              onPressed: () => notifier.startTimer(timer.id),
-            ),
-          )
+            onPressed: () => notifier.startTimer(timer.id),
+          ),
+        ),
       );
     }
 
     if (timer.isRunning) {
-      // 顯示暫停按鈕
       buttons.add(
-          Tooltip(
-            message: "Pause",
-            child: IconButton(
-              icon: Icon(Icons.pause, color: colorScheme.secondary),
-              onPressed: () => notifier.pauseTimer(timer.id),
-            ),
-          )
+        Tooltip(
+          message: 'Pause',
+          child: IconButton(
+            icon: Icon(Icons.pause, color: colorScheme.secondary),
+            onPressed: () => notifier.pauseTimer(timer.id),
+          ),
+        ),
       );
     }
 
-    // 總是可以顯示重置按鈕 (除非是純粹的 pending 狀態且時間未動)
     if (!timer.isPending || timer.remainingDuration < timer.totalDuration) {
       buttons.add(
-          Tooltip(
-            message: "Reset",
-            child: IconButton(
-              icon: Icon(Icons.refresh, color: colorScheme.onSurface.withOpacity(0.7)),
-              onPressed: () => notifier.resetTimer(timer.id),
-            ),
-          )
+        Tooltip(
+          message: 'Reset',
+          child: IconButton(
+            icon: Icon(Icons.refresh, color: colorScheme.onSurface.withOpacity(0.7)),
+            onPressed: () => notifier.resetTimer(timer.id),
+          ),
+        ),
       );
     }
 
-
     if (buttons.isEmpty) {
-      // 理論上根據上面的邏輯，總會有按鈕，但以防萬一
       return const SizedBox.shrink();
     }
-
-    // 如果只有一個按鈕，直接返回它，否則用 Row 包裹
-    return buttons.length == 1 ? buttons.first : Row(mainAxisSize: MainAxisSize.min, children: buttons);
+    return buttons.length == 1
+        ? buttons.first
+        : Row(mainAxisSize: MainAxisSize.min, children: buttons);
   }
 }
