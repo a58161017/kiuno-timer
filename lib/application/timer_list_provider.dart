@@ -13,6 +13,7 @@ import '../../../domain/entities/timer_status.dart'; // 雖然這裡沒直接用
 
 const String _timersStorageKey = 'kiuno_timers_list';
 const String _continuousAlertStopActionId = 'STOP_CONTINUOUS_ALERT';
+const Duration _continuousAlertReminderInterval = Duration(seconds: 6);
 
 const AndroidNotificationChannel _timerFinishedChannel = AndroidNotificationChannel(
   'kiuno_timer_finished',
@@ -22,6 +23,11 @@ const AndroidNotificationChannel _timerFinishedChannel = AndroidNotificationChan
   playSound: true,
 );
 
+@pragma('vm:entry-point')
+void notificationTapBackground(NotificationResponse response) {
+  TimerListNotifier.instance?.handleNotificationResponse(response);
+}
+
 class TimerListNotifier extends StateNotifier<List<TimerModel>> {
   final Map<String, Timer> _activeTimers = {};
   SharedPreferences? _prefs;
@@ -30,8 +36,12 @@ class TimerListNotifier extends StateNotifier<List<TimerModel>> {
   Timer? _continuousAlertTimer;
   String? _currentlyAlertingTimerId;
   bool _notificationsInitialized = false;
+  static TimerListNotifier? _instance;
+
+  static TimerListNotifier? get instance => _instance;
 
   TimerListNotifier() : super([]) {
+    _instance = this;
     _init();
     _audioPlayer.onPlayerComplete.listen((event) {
       if (_currentlyAlertingTimerId != null) {
@@ -56,6 +66,9 @@ class TimerListNotifier extends StateNotifier<List<TimerModel>> {
     _activeTimers.clear();
     _audioPlayer.dispose();
     AndroidForegroundService.stop();
+    if (identical(_instance, this)) {
+      _instance = null;
+    }
     super.dispose();
   }
 
@@ -217,7 +230,8 @@ class TimerListNotifier extends StateNotifier<List<TimerModel>> {
 
       await _localNotifications.initialize(
         initializationSettings,
-        onDidReceiveNotificationResponse: _handleNotificationResponse,
+        onDidReceiveNotificationResponse: handleNotificationResponse,
+        onDidReceiveBackgroundNotificationResponse: notificationTapBackground,
       );
 
       final androidImplementation = _localNotifications
@@ -351,10 +365,12 @@ class TimerListNotifier extends StateNotifier<List<TimerModel>> {
         _timerFinishedChannel.name,
         channelDescription: _timerFinishedChannel.description,
         importance: Importance.max,
-        priority: Priority.high,
+        priority: Priority.max,
         ticker: 'Timer finished',
         autoCancel: !timer.alertUntilStopped,
         ongoing: timer.alertUntilStopped,
+        category: AndroidNotificationCategory.alarm,
+        fullScreenIntent: timer.alertUntilStopped,
         actions: timer.alertUntilStopped
             ? const <AndroidNotificationAction>[
                 AndroidNotificationAction(
@@ -404,10 +420,16 @@ class TimerListNotifier extends StateNotifier<List<TimerModel>> {
     _playNotificationSound(initialCallForLoop: true);
 
     _continuousAlertTimer?.cancel();
+    int ticksSinceReminder = 0;
     _continuousAlertTimer = Timer.periodic(const Duration(seconds: 2), (timer) { // 每2秒震動一次
       final currentTimer = _findTimerById(_currentlyAlertingTimerId!);
       if (currentTimer.status == TimerStatus.alerting) {
         _vibrateDevice(continuous: true);
+        ticksSinceReminder += 2;
+        if (_notificationsInitialized && ticksSinceReminder >= _continuousAlertReminderInterval.inSeconds) {
+          ticksSinceReminder = 0;
+          unawaited(_showTimerFinishedNotification(currentTimer));
+        }
       } else {
         timer.cancel();
       }
@@ -463,7 +485,7 @@ class TimerListNotifier extends StateNotifier<List<TimerModel>> {
     }
   }
 
-  void _handleNotificationResponse(NotificationResponse response) {
+  void handleNotificationResponse(NotificationResponse response) {
     if (response.actionId == _continuousAlertStopActionId && response.payload != null) {
       resetTimer(response.payload!);
     }
