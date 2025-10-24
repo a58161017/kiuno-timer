@@ -20,105 +20,227 @@ class TimerListPage extends ConsumerWidget {
     final List<TimerModel> timers = ref.watch(timerListProvider);
     final notifier = ref.read(timerListProvider.notifier);
 
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
+      extendBody: true,
       appBar: AppBar(
         title: const Text('My Timers'),
-        backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+        centerTitle: true,
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        foregroundColor: colorScheme.onSurface,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                colorScheme.primaryContainer.withOpacity(0.95),
+                colorScheme.secondaryContainer.withOpacity(0.75),
+              ],
+            ),
+          ),
+        ),
       ),
-      body: timers.isEmpty
-          ? Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
+      body: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              colorScheme.surface,
+              colorScheme.surfaceVariant.withOpacity(0.7),
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.hourglass_empty,
-                        size: 64,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant),
-                    const SizedBox(height: 16),
                     Text(
-                      'No timers yet',
-                      style: Theme.of(context)
-                          .textTheme
-                          .headlineSmall
-                          ?.copyWith(fontWeight: FontWeight.bold),
+                      'Welcome back',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4),
                     Text(
-                      'Tap the button below to add your first timer.',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyMedium,
+                      'You have ${timers.length} timer${timers.length == 1 ? '' : 's'}',
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
                     ),
                   ],
                 ),
               ),
-            )
-          : ListView.builder(
-              itemCount: timers.length,
-              itemBuilder: (context, index) {
-                final timer = timers[index];
-                return Dismissible(
-                  key: ValueKey(timer.id),
-                  background: Container(
-                    color: Colors.red.shade400,
-                    alignment: Alignment.centerLeft,
-                    padding: const EdgeInsets.only(left: 24),
-                    child: const Icon(Icons.delete, color: Colors.white),
-                  ),
-                  secondaryBackground: Container(
-                    color: Colors.blueGrey.shade400,
-                    alignment: Alignment.centerRight,
-                    padding: const EdgeInsets.only(right: 24),
-                    child: const Icon(Icons.edit, color: Colors.white),
-                  ),
-                  confirmDismiss: (direction) async {
-                    if (direction == DismissDirection.startToEnd) {
-                      // Swipe right to delete.
-                      final result = await showDialog<bool>(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          title: const Text('Delete Timer'),
-                          content: Text('Are you sure you want to delete "${timer.name}"?'),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.of(context).pop(false),
-                              child: const Text('Cancel'),
+              Expanded(
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  child: timers.isEmpty
+                      ? Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                            child: Container(
+                              padding: const EdgeInsets.all(24.0),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(24),
+                                color: colorScheme.surface.withOpacity(0.75),
+                                border: Border.all(
+                                  color: colorScheme.outlineVariant.withOpacity(0.4),
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: colorScheme.shadow.withOpacity(0.05),
+                                    blurRadius: 24,
+                                    offset: const Offset(0, 16),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.hourglass_empty,
+                                    size: 68,
+                                    color: colorScheme.primary,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    'Create your first timer',
+                                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Organise workouts, focus sessions or reminders with beautifully crafted timers.',
+                                    textAlign: TextAlign.center,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(color: colorScheme.onSurfaceVariant),
+                                  ),
+                                  const SizedBox(height: 20),
+                                  FilledButton.icon(
+                                    onPressed: () {
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder: (_) => const AddTimerPage(),
+                                        ),
+                                      );
+                                    },
+                                    icon: const Icon(Icons.add),
+                                    label: const Text('Add timer'),
+                                  ),
+                                ],
+                              ),
                             ),
-                            TextButton(
-                              onPressed: () => Navigator.of(context).pop(true),
-                              child: const Text('Delete'),
-                            ),
-                          ],
+                          ),
+                        )
+                      : ListView.separated(
+                          padding: const EdgeInsets.only(bottom: 120),
+                          itemCount: timers.length,
+                          separatorBuilder: (_, __) => const SizedBox(height: 4),
+                          itemBuilder: (context, index) {
+                            final timer = timers[index];
+                            return Dismissible(
+                              key: ValueKey(timer.id),
+                              background: _buildDismissBackground(
+                                alignment: Alignment.centerLeft,
+                                color: Colors.red.shade400,
+                                icon: Icons.delete,
+                              ),
+                              secondaryBackground: _buildDismissBackground(
+                                alignment: Alignment.centerRight,
+                                color: colorScheme.primary.withOpacity(0.8),
+                                icon: Icons.edit,
+                              ),
+                              confirmDismiss: (direction) async {
+                                if (direction == DismissDirection.startToEnd) {
+                                  final result = await showDialog<bool>(
+                                    context: context,
+                                    builder: (context) => AlertDialog(
+                                      title: const Text('Delete Timer'),
+                                      content: Text(
+                                        'Are you sure you want to delete "${timer.name}"?',
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.of(context).pop(false),
+                                          child: const Text('Cancel'),
+                                        ),
+                                        TextButton(
+                                          onPressed: () => Navigator.of(context).pop(true),
+                                          child: const Text('Delete'),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                  if (result == true) {
+                                    notifier.removeTimer(timer.id);
+                                    return true;
+                                  }
+                                  return false;
+                                } else {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => AddTimerPage(timerToEdit: timer),
+                                    ),
+                                  );
+                                  return false;
+                                }
+                              },
+                              child: TimerCardWidget(timer: timer),
+                            );
+                          },
                         ),
-                      );
-                      if (result == true) {
-                        notifier.removeTimer(timer.id);
-                        return true;
-                      }
-                      return false;
-                    } else {
-                      // Swipe left to edit.
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => AddTimerPage(timerToEdit: timer),
-                        ),
-                      );
-                      return false;
-                    }
-                  },
-                  child: TimerCardWidget(timer: timer),
-                );
-              },
-            ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => const AddTimerPage()),
           );
         },
+        backgroundColor: colorScheme.primary,
+        foregroundColor: colorScheme.onPrimary,
         icon: const Icon(Icons.add),
-        label: const Text('Add Timer'),
+        label: const Text('New Timer'),
       ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+    );
+  }
+
+  Widget _buildDismissBackground({
+    required Alignment alignment,
+    required Color color,
+    required IconData icon,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: alignment == Alignment.centerLeft
+              ? Alignment.centerLeft
+              : Alignment.centerRight,
+          end: alignment == Alignment.centerLeft
+              ? Alignment.centerRight
+              : Alignment.centerLeft,
+          colors: [color.withOpacity(0.85), color.withOpacity(0.65)],
+        ),
+      ),
+      alignment: alignment,
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Icon(icon, color: Colors.white),
     );
   }
 }
