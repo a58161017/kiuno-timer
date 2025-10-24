@@ -48,112 +48,182 @@ class _AddTimerPageState extends ConsumerState<AddTimerPage> {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: Text(_timerToEdit != null ? 'Edit Timer' : 'Add New Timer'),
-        backgroundColor: colorScheme.primaryContainer,
+        centerTitle: true,
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                colorScheme.primaryContainer.withOpacity(0.95),
+                colorScheme.tertiaryContainer.withOpacity(0.75),
+              ],
+            ),
+          ),
+        ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            children: <Widget>[
-              TextFormField(
-                initialValue: _timerName,
-                decoration: const InputDecoration(
-                  labelText: 'Timer Name',
-                  border: OutlineInputBorder(),
-                  hintText: 'E.g., Kitchen Timer',
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a timer name';
-                  }
-                  return null;
-                },
-                onSaved: (value) {
-                  _timerName = value!;
-                },
-              ),
-              const SizedBox(height: 20),
-              Row(
+      body: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              colorScheme.surface,
+              colorScheme.surfaceVariant.withOpacity(0.8),
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24.0),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
-                  Expanded(
-                    child: TextFormField(
-                      initialValue: _inputMinutes?.toString(),
-                      decoration: const InputDecoration(
-                        labelText: 'Minutes',
-                        border: OutlineInputBorder(),
-                        hintText: '0',
+                  Container(
+                    padding: const EdgeInsets.all(24.0),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(28),
+                      color: colorScheme.surface.withOpacity(0.85),
+                      boxShadow: [
+                        BoxShadow(
+                          color: colorScheme.shadow.withOpacity(0.05),
+                          blurRadius: 30,
+                          offset: const Offset(0, 20),
+                        ),
+                      ],
+                      border: Border.all(
+                        color: colorScheme.outlineVariant.withOpacity(0.35),
                       ),
-                      keyboardType: TextInputType.number,
-                      inputFormatters: <TextInputFormatter>[FilteringTextInputFormatter.digitsOnly],
-                      onSaved: (value) {
-                        _inputMinutes = int.tryParse(value ?? '');
-                      },
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Timer details',
+                          style: textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        TextFormField(
+                          initialValue: _timerName,
+                          decoration: InputDecoration(
+                            labelText: 'Timer Name',
+                            hintText: 'E.g., Focus Session',
+                            filled: true,
+                            fillColor: colorScheme.surfaceVariant.withOpacity(0.35),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter a timer name';
+                            }
+                            return null;
+                          },
+                          onSaved: (value) {
+                            _timerName = value!;
+                          },
+                        ),
+                        const SizedBox(height: 24),
+                        Row(
+                          children: <Widget>[
+                            Expanded(
+                              child: TextFormField(
+                                initialValue: _inputMinutes?.toString(),
+                                decoration: InputDecoration(
+                                  labelText: 'Minutes',
+                                  hintText: '0',
+                                  filled: true,
+                                  fillColor:
+                                      colorScheme.surfaceVariant.withOpacity(0.35),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                ),
+                                keyboardType: TextInputType.number,
+                                inputFormatters: <TextInputFormatter>[
+                                  FilteringTextInputFormatter.digitsOnly,
+                                ],
+                                onSaved: (value) {
+                                  _inputMinutes = int.tryParse(value ?? '');
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: TextFormField(
+                                initialValue: _inputSeconds?.toString(),
+                                decoration: InputDecoration(
+                                  labelText: 'Seconds',
+                                  hintText: '0',
+                                  filled: true,
+                                  fillColor:
+                                      colorScheme.surfaceVariant.withOpacity(0.35),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                ),
+                                keyboardType: TextInputType.number,
+                                inputFormatters: <TextInputFormatter>[
+                                  FilteringTextInputFormatter.digitsOnly,
+                                ],
+                                validator: (value) {
+                                  if (value != null && value.isNotEmpty) {
+                                    final int? seconds = int.tryParse(value);
+                                    if (seconds == null || seconds < 0 || seconds > 59) {
+                                      return '0-59';
+                                    }
+                                  }
+                                  return null;
+                                },
+                                onSaved: (value) {
+                                  _inputSeconds = int.tryParse(value ?? '');
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        SwitchListTile.adaptive(
+                          title: const Text('Alert until stopped'),
+                          subtitle: const Text(
+                            'Keeps playing sound and vibration until you manually stop it.',
+                          ),
+                          value: _alertUntilStopped,
+                          onChanged: (bool newValue) {
+                            setState(() {
+                              _alertUntilStopped = newValue;
+                            });
+                          },
+                          activeColor: colorScheme.primary,
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ],
                     ),
                   ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8.0),
-                    child: Text(':', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                  ),
-                  Expanded(
-                    child: TextFormField(
-                      initialValue: _inputSeconds?.toString(),
-                      decoration: const InputDecoration(
-                        labelText: 'Seconds',
-                        border: OutlineInputBorder(),
-                        hintText: '0',
-                      ),
-                      keyboardType: TextInputType.number,
-                      inputFormatters: <TextInputFormatter>[FilteringTextInputFormatter.digitsOnly],
-                      validator: (value) {
-                        if (value != null && value.isNotEmpty) {
-                          final int? seconds = int.tryParse(value);
-                          if (seconds == null || seconds < 0 || seconds > 59) {
-                            return '0-59';
-                          }
-                        }
-                        return null;
-                      },
-                      onSaved: (value) {
-                        _inputSeconds = int.tryParse(value ?? '');
-                      },
+                  const SizedBox(height: 24),
+                  FilledButton.icon(
+                    onPressed: _submitForm,
+                    icon: const Icon(Icons.save_outlined),
+                    label: Text(
+                      _timerToEdit == null ? 'Save Timer' : 'Update Timer',
+                      style: textTheme.titleMedium,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
-              CheckboxListTile(
-                title: const Text('Alert until stopped'),
-                subtitle: const Text(
-                  'Plays sound and vibrates repeatedly until manually stopped.',
-                ),
-                value: _alertUntilStopped,
-                onChanged: (bool? newValue) {
-                  setState(() {
-                    _alertUntilStopped = newValue ?? false;
-                  });
-                },
-                controlAffinity: ListTileControlAffinity.leading,
-                contentPadding: EdgeInsets.zero,
-                activeColor: colorScheme.primary,
-              ),
-              const SizedBox(height: 30),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16.0),
-                  backgroundColor: colorScheme.primary,
-                  foregroundColor: colorScheme.onPrimary,
-                ),
-                onPressed: _submitForm,
-                child: Text(
-                  'Save Timer',
-                  style: textTheme.titleMedium,
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
