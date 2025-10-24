@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vibration/vibration.dart';
 import '../../../domain/entities/timer_model.dart';
@@ -10,12 +11,22 @@ import '../../../domain/entities/timer_status.dart'; // 雖然這裡沒直接用
 
 const String _timersStorageKey = 'kiuno_timers_list';
 
+const AndroidNotificationChannel _timerFinishedChannel = AndroidNotificationChannel(
+  'kiuno_timer_finished',
+  'Timer Finished Alerts',
+  description: 'Heads-up notifications when timers complete.',
+  importance: Importance.max,
+  playSound: true,
+);
+
 class TimerListNotifier extends StateNotifier<List<TimerModel>> {
   final Map<String, Timer> _activeTimers = {};
   SharedPreferences? _prefs;
   final AudioPlayer _audioPlayer = AudioPlayer();
+  final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
   Timer? _continuousAlertTimer;
   String? _currentlyAlertingTimerId;
+  bool _notificationsInitialized = false;
 
   TimerListNotifier() : super([]) {
     _init();
@@ -105,10 +116,12 @@ class TimerListNotifier extends StateNotifier<List<TimerModel>> {
 
         final finishedTimer = _findTimerById(timerId);
         if (finishedTimer.id.isNotEmpty && finishedTimer.alertUntilStopped) {
+          unawaited(_showTimerFinishedNotification(finishedTimer));
           _startContinuousAlert(timerId);
         } else if (finishedTimer.id.isNotEmpty) {
           _playNotificationSound(initialCallForLoop: false);
           _vibrateDevice(continuous: false);
+          unawaited(_showTimerFinishedNotification(finishedTimer));
         }
       }
     });
@@ -172,8 +185,36 @@ class TimerListNotifier extends StateNotifier<List<TimerModel>> {
 
   Future<void> _init() async {
     _prefs = await SharedPreferences.getInstance();
+    await _initializeNotifications();
     await _loadTimers();
     _resetRunningTimersToPausedOnLoad();
+  }
+
+  Future<void> _initializeNotifications() async {
+    try {
+      const AndroidInitializationSettings androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+      final DarwinInitializationSettings iosSettings = DarwinInitializationSettings(
+        requestAlertPermission: true,
+        requestBadgePermission: true,
+        requestSoundPermission: true,
+      );
+      final InitializationSettings initializationSettings = InitializationSettings(
+        android: androidSettings,
+        iOS: iosSettings,
+      );
+
+      await _localNotifications.initialize(initializationSettings);
+
+      final androidImplementation = _localNotifications
+          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+
+      await androidImplementation?.createNotificationChannel(_timerFinishedChannel);
+      await androidImplementation?.requestNotificationsPermission();
+
+      _notificationsInitialized = true;
+    } catch (e) {
+      print('Error initializing notifications: $e');
+    }
   }
 
   Future<void> _loadTimers() async {
@@ -281,6 +322,39 @@ class TimerListNotifier extends StateNotifier<List<TimerModel>> {
       }
     } catch (e) {
       print("Error vibrating device: $e");
+    }
+  }
+
+  Future<void> _showTimerFinishedNotification(TimerModel timer) async {
+    if (!_notificationsInitialized) {
+      return;
+    }
+
+    try {
+      final NotificationDetails notificationDetails = NotificationDetails(
+        android: AndroidNotificationDetails(
+          _timerFinishedChannel.id,
+          _timerFinishedChannel.name,
+          channelDescription: _timerFinishedChannel.description,
+          importance: Importance.max,
+          priority: Priority.high,
+          ticker: 'Timer finished',
+        ),
+        iOS: const DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        ),
+      );
+
+      await _localNotifications.show(
+        timer.id.hashCode,
+        '計時完成',
+        '${timer.name} 已經結束',
+        notificationDetails,
+      );
+    } catch (e) {
+      print('Error showing notification: $e');
     }
   }
 
