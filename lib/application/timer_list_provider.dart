@@ -1,0 +1,360 @@
+// lib/application/timer_list_provider.dart
+import 'dart:async';
+import 'dart:convert';
+import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:vibration/vibration.dart';
+import '../../../domain/entities/timer_model.dart';
+import '../../../domain/entities/timer_status.dart'; // 雖然這裡沒直接用，但 TimerModel 依賴它
+
+const String _timersStorageKey = 'kiuno_timers_list';
+
+class TimerListNotifier extends StateNotifier<List<TimerModel>> {
+  final Map<String, Timer> _activeTimers = {};
+  SharedPreferences? _prefs;
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  Timer? _continuousAlertTimer;
+  String? _currentlyAlertingTimerId;
+
+  TimerListNotifier() : super([]) {
+    _init();
+    _audioPlayer.onPlayerComplete.listen((event) {
+      if (_currentlyAlertingTimerId != null) {
+        final alertingTimer = _findTimerById(_currentlyAlertingTimerId!);
+        if (alertingTimer.id.isNotEmpty && alertingTimer.isAlerting) {
+          Future.delayed(const Duration(milliseconds: 300), () {
+            final stillAlertingTimer = _findTimerById(_currentlyAlertingTimerId!);
+            if (_currentlyAlertingTimerId == alertingTimer.id && stillAlertingTimer.status == TimerStatus.alerting) {
+              _playNotificationSoundInternal();
+            }
+          });
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    for (final timer in _activeTimers.values) {
+      timer.cancel();
+    }
+    _activeTimers.clear();
+    _audioPlayer.dispose();
+    super.dispose();
+  }
+
+  void addTimer(TimerModel timer) {
+    _stopContinuousAlert();
+    state = [...state, timer];
+    _saveTimers();
+  }
+
+  void removeTimer(String timerId) {
+    if (_currentlyAlertingTimerId == timerId) {
+      _stopContinuousAlert();
+    }
+    _activeTimers[timerId]?.cancel();
+    _activeTimers.remove(timerId);
+    state = state.where((timer) => timer.id != timerId).toList();
+    _saveTimers();
+  }
+
+  void startTimer(String timerId) {
+    _stopContinuousAlert();
+
+    _activeTimers[timerId]?.cancel();
+
+    final timerIndex = state.indexWhere((t) => t.id == timerId);
+    if (timerIndex == -1) return; // 找不到計時器
+
+    TimerModel timerToStart = state[timerIndex];
+
+    if (timerToStart.isFinished || timerToStart.isRunning) {
+      if (timerToStart.isFinished && timerToStart.alertUntilStopped && _currentlyAlertingTimerId == timerId) {
+        // 這種情況下，用戶點擊 "播放" 實際上是想重新開始這個計時器
+        // _stopContinuousAlert(); // 會在 _updateTimerState 中處理
+      } else if (timerToStart.isFinished) {
+        // 普通完成的，直接重置並開始
+      } else {
+        return; // 正在運行的，不處理
+      }
+    }
+
+    if (timerToStart.isPending || timerToStart.isFinished) {
+      timerToStart = timerToStart.copyWith(remainingDuration: timerToStart.totalDuration);
+    }
+    _updateTimerState(timerId, status: TimerStatus.running, remainingDuration: timerToStart.remainingDuration);
+    timerToStart = state.firstWhere((t) => t.id == timerId);
+
+    _activeTimers[timerId] = Timer.periodic(const Duration(seconds: 1), (dartTimer) {
+      final currentTimerModel = state.firstWhere((t) => t.id == timerId, orElse: () => timerToStart); // orElse 以防萬一
+      if(currentTimerModel.id.isEmpty) {
+        dartTimer.cancel();
+        _activeTimers.remove(timerId);
+        return;
+      }
+
+      if (currentTimerModel.remainingDuration.inSeconds > 0) {
+        final newRemaining = currentTimerModel.remainingDuration - const Duration(seconds: 1);
+        _updateTimerState(timerId, remainingDuration: newRemaining, status: TimerStatus.running);
+      } else {
+        _activeTimers[timerId]?.cancel();
+        _activeTimers.remove(timerId);
+        _updateTimerState(timerId, remainingDuration: Duration.zero, status: TimerStatus.finished);
+
+        final finishedTimer = _findTimerById(timerId);
+        if (finishedTimer.id.isNotEmpty && finishedTimer.alertUntilStopped) {
+          _startContinuousAlert(timerId);
+        } else if (finishedTimer.id.isNotEmpty) {
+          _playNotificationSound(initialCallForLoop: false);
+          _vibrateDevice(continuous: false);
+        }
+      }
+    });
+  }
+
+  void pauseTimer(String timerId) {
+    _activeTimers[timerId]?.cancel();
+
+    final timerIndex = state.indexWhere((t) => t.id == timerId);
+    if (timerIndex == -1) return;
+
+    final timerToPause = state[timerIndex];
+    if (!timerToPause.isRunning) return;
+
+    _updateTimerState(timerId, status: TimerStatus.paused);
+  }
+
+  void resetTimer(String timerId) {
+    if (_currentlyAlertingTimerId == timerId) {
+      _stopContinuousAlert();
+    }
+    _activeTimers[timerId]?.cancel();
+    _activeTimers.remove(timerId);
+
+    final timerIndex = state.indexWhere((t) => t.id == timerId);
+    if (timerIndex == -1) return;
+
+    final timerToReset = state[timerIndex];
+    _updateTimerState(
+      timerId,
+      remainingDuration: timerToReset.totalDuration,
+      status: TimerStatus.pending,
+    );
+  }
+
+  void editTimer(TimerModel updatedTimer) {
+    final existingTimerIndex = state.indexWhere((t) => t.id == updatedTimer.id);
+    if (existingTimerIndex != -1) {
+      final existingTimer = state[existingTimerIndex];
+      if (existingTimer.isRunning) {
+        _activeTimers[existingTimer.id]?.cancel();
+        _activeTimers.remove(existingTimer.id);
+      }
+      if (existingTimer.isAlerting) {
+        _stopContinuousAlert();
+      }
+    }
+
+    state = [
+      for (final timerInList in state)
+        if (timerInList.id == updatedTimer.id)
+          updatedTimer.copyWith(
+            status: TimerStatus.pending,
+            remainingDuration: updatedTimer.totalDuration,
+          )
+        else
+          timerInList,
+    ];
+    _saveTimers();
+  }
+
+  Future<void> _init() async {
+    _prefs = await SharedPreferences.getInstance();
+    await _loadTimers();
+    _resetRunningTimersToPausedOnLoad();
+  }
+
+  Future<void> _loadTimers() async {
+    if (_prefs == null) return; // 確保 _prefs 已初始化
+
+    final String? timersJson = _prefs!.getString(_timersStorageKey);
+    if (timersJson != null && timersJson.isNotEmpty) {
+      try {
+        final List<dynamic> decodedList = jsonDecode(timersJson) as List;
+        final List<TimerModel> loadedTimers = decodedList
+            .map((item) => TimerModel.fromJson(item as Map<String, dynamic>))
+            .toList();
+        state = loadedTimers;
+        print("Timers loaded: ${state.length}");
+      } catch (e) {
+        print("Error loading timers: $e");
+        state = []; // 如果加載失敗，則使用空列表
+      }
+    } else {
+      state = []; // 如果沒有存儲的數據，則使用空列表
+      print("No saved timers found.");
+    }
+  }
+
+  Future<void> _saveTimers() async {
+    if (_prefs == null) return;
+
+    final List<Map<String, dynamic>> timersToSave =
+    state.map((timer) => timer.toJson()).toList();
+    final String timersJson = jsonEncode(timersToSave);
+    await _prefs!.setString(_timersStorageKey, timersJson);
+    print("Timers saved.");
+  }
+
+  void _resetRunningTimersToPausedOnLoad() {
+    bool changed = false;
+    final newState = state.map((timer) {
+      if (timer.status == TimerStatus.running) {
+        changed = true;
+        return timer.copyWith(status: TimerStatus.paused);
+      }
+      return timer;
+    }).toList();
+
+    if (changed) {
+      state = newState;
+      _saveTimers(); // 如果有更改，保存一下狀態
+    }
+  }
+
+  void _updateTimerState(String timerId, {
+    Duration? remainingDuration,
+    TimerStatus? status,
+  }) {
+    final oldTimer = _findTimerById(timerId);
+    if (oldTimer.id.isNotEmpty && oldTimer.status != TimerStatus.finished && status == TimerStatus.finished && _currentlyAlertingTimerId != timerId) {
+      _stopContinuousAlert();
+    }
+
+    state = [
+      for (final timerInList in state)
+        if (timerInList.id == timerId)
+          timerInList.copyWith(
+            remainingDuration: remainingDuration,
+            status: status,
+          )
+        else
+          timerInList,
+    ];
+    _saveTimers();
+  }
+
+  Future<void> _playNotificationSoundInternal() async {
+    try {
+      await _audioPlayer.play(AssetSource('audio/timer_finished.mp3')); // 總是播放一次
+      print("Notification sound played (internally for loop).");
+    } catch (e) {
+      print("Error playing sound internally: $e");
+    }
+  }
+
+  Future<void> _playNotificationSound({bool initialCallForLoop = false}) async {
+    try {
+      if (initialCallForLoop) {
+        // 這是 _startContinuousAlert 調用的，確保播放器沒有在播放其他東西
+        await _audioPlayer.stop(); // 先停止，確保是新的播放序列
+      }
+      await _audioPlayer.play(AssetSource('audio/timer_finished.mp3'));
+      print("Notification sound played (initialCallForLoop: $initialCallForLoop).");
+    } catch (e) {
+      print("Error playing sound: $e");
+    }
+  }
+
+  Future<void> _vibrateDevice({bool continuous = false}) async {
+    try {
+      bool? canVibrate = await Vibration.hasVibrator(); // 檢查設備是否有震動器
+      if (canVibrate == true) {
+        if (canVibrate == true) {
+          Vibration.vibrate(duration: 300);
+        } else {
+          Vibration.vibrate(duration: 500);
+        }
+        print("Device vibrated (continuous: $continuous).");
+      }
+    } catch (e) {
+      print("Error vibrating device: $e");
+    }
+  }
+
+  void _startContinuousAlert(String timerId) {
+    _stopContinuousAlert();
+
+    final timerModel = _findTimerById(timerId);
+    if (timerModel.id.isEmpty || !timerModel.alertUntilStopped || !timerModel.isFinished) {
+      return;
+    }
+
+    _currentlyAlertingTimerId = timerId;
+    _updateTimerState(timerId, status: TimerStatus.alerting);
+
+    print("Starting continuous alert for $timerId");
+
+    _playNotificationSound(initialCallForLoop: true);
+
+    _continuousAlertTimer?.cancel();
+    _continuousAlertTimer = Timer.periodic(const Duration(seconds: 2), (timer) { // 每2秒震動一次
+      final currentTimer = _findTimerById(_currentlyAlertingTimerId!);
+      if (currentTimer.status == TimerStatus.alerting) {
+        _vibrateDevice(continuous: true);
+      } else {
+        timer.cancel();
+      }
+    });
+  }
+
+  void stopContinuousAlertForTimer(String timerId) {
+    if (_currentlyAlertingTimerId == timerId) {
+      _stopContinuousAlert();
+      print("Continuous alert stopped by user for $timerId");
+    }
+  }
+
+  void _stopContinuousAlert() {
+    String? previousAlertingId = _currentlyAlertingTimerId;
+    _continuousAlertTimer?.cancel();
+    _continuousAlertTimer = null;
+    _audioPlayer.stop(); // 停止音頻播放
+    _currentlyAlertingTimerId = null;
+
+    if (previousAlertingId != null) {
+      final timerToUpdate = _findTimerById(previousAlertingId);
+      if (timerToUpdate.id.isNotEmpty && timerToUpdate.status == TimerStatus.alerting) {
+        // 只有當它確實處於 alerting 狀態時才改回 finished
+        _updateTimerState(previousAlertingId, status: TimerStatus.finished);
+      }
+      print("Stopping continuous alert for $previousAlertingId");
+    }
+  }
+
+  TimerModel _dummyTimerModel() {
+    return TimerModel(
+      id: '',
+      name: 'Dummy',
+      totalDuration: Duration.zero,
+      initialRemainingDuration: Duration.zero,
+      status: TimerStatus.pending,
+      alertUntilStopped: false,
+    );
+  }
+
+  TimerModel _findTimerById(String timerId) {
+    try {
+      return state.firstWhere((t) => t.id == timerId);
+    } catch (e) {
+      return _dummyTimerModel();
+    }
+  }
+}
+
+final timerListProvider = StateNotifierProvider<TimerListNotifier, List<TimerModel>>((ref) {
+  return TimerListNotifier();
+});
+    
