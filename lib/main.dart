@@ -17,21 +17,51 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const seed = Color(0xFF6750A4);
+    final baseTextTheme = ThemeData(brightness: Brightness.light).textTheme;
+
     return MaterialApp(
       title: 'Kiuno Timer',
       themeMode: ThemeMode.system,
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.deepPurple,
+          seedColor: seed,
           brightness: Brightness.light,
+        ),
+        textTheme: baseTextTheme.apply(
+          displayColor: const Color(0xFF1B102A),
+          bodyColor: const Color(0xFF1B102A),
+        ),
+        scaffoldBackgroundColor: const Color(0xFFF7F2FB),
+        cardTheme: CardThemeData(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        ),
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          ),
+        ),
+        floatingActionButtonTheme: const FloatingActionButtonThemeData(
+          shape: StadiumBorder(),
         ),
       ),
       darkTheme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.deepPurple,
+          seedColor: seed,
           brightness: Brightness.dark,
+        ),
+        cardTheme: CardThemeData(
+          color: const Color(0xFF1E1A29),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        ),
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          ),
         ),
       ),
       home: const TimerListPage(),

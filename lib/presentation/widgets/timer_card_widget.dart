@@ -68,110 +68,184 @@ class TimerCardWidget extends ConsumerWidget {
     final int remainingSeconds = timer.remainingDuration.inSeconds;
     final double progress = totalSeconds == 0 ? 0.0 : (remainingSeconds / totalSeconds);
 
-    return Card(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12.0),
-      ),
-      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-      elevation: 2.0,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header row with name and actions.
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    timer.name,
-                    style: textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.edit, color: Colors.blueGrey),
-                  tooltip: 'Edit Timer',
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => AddTimerPage(timerToEdit: timer),
-                      ),
-                    );
-                  },
-                ),
-                IconButton(
-                  icon: Icon(Icons.delete_outline, color: colorScheme.error),
-                  tooltip: 'Delete Timer',
-                  onPressed: () {
-                    showDialog(
-                      context: context,
-                      builder: (BuildContext dialogContext) {
-                        return AlertDialog(
-                          title: const Text('Confirm Delete'),
-                          content: Text('Are you sure you want to delete "${timer.name}"?'),
-                          actions: <Widget>[
-                            TextButton(
-                              child: const Text('Cancel'),
-                              onPressed: () {
-                                Navigator.of(dialogContext).pop();
-                              },
-                            ),
-                            TextButton(
-                              style: TextButton.styleFrom(foregroundColor: colorScheme.error),
-                              child: const Text('Delete'),
-                              onPressed: () {
-                                ref.read(timerListProvider.notifier).removeTimer(timer.id);
-                                Navigator.of(dialogContext).pop();
-                              },
-                            ),
-                          ],
-                        );
-                      },
-                    );
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            // Animated time display for smooth updates.
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 300),
-              child: Text(
-                displayedTime,
-                key: ValueKey<String>(displayedTime),
-                style: textTheme.headlineMedium?.copyWith(
-                  color: colorScheme.primary,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Icon(statusIcon, color: statusColor, size: 20),
-                const SizedBox(width: 8),
-                Text(
-                  // Capitalize status name for display.
-                  timer.status.name.substring(0, 1).toUpperCase() + timer.status.name.substring(1),
-                  style: textTheme.labelLarge?.copyWith(color: statusColor),
-                ),
-                const Spacer(),
-                _buildControlButtons(context, ref, timer, colorScheme),
-              ],
-            ),
-            const SizedBox(height: 12),
-            // Visual progress indicator. Inverts progress so that full bar means finished.
-            LinearProgressIndicator(
-              value: 1.0 - progress.clamp(0.0, 1.0),
-              minHeight: 4.0,
-              backgroundColor: colorScheme.surfaceVariant,
-              valueColor: AlwaysStoppedAnimation<Color>(statusColor),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeOutCubic,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(28),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              colorScheme.surface,
+              colorScheme.surfaceVariant.withOpacity(0.8),
+            ],
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: colorScheme.shadow.withOpacity(0.08),
+              blurRadius: 24,
+              offset: const Offset(0, 16),
             ),
           ],
+          border: Border.all(
+            color: colorScheme.outlineVariant.withOpacity(0.4),
+            width: 1.2,
+          ),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            timer.name,
+                            style: textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.2,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 6),
+                          DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: statusColor.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(statusIcon, color: statusColor, size: 16),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    timer.status.name.substring(0, 1).toUpperCase() +
+                                        timer.status.name.substring(1),
+                                    style: textTheme.labelMedium?.copyWith(
+                                      color: statusColor,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      children: [
+                        _ActionIconButton(
+                          icon: Icons.edit,
+                          tooltip: 'Edit Timer',
+                          color: colorScheme.primary,
+                          onTap: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) => AddTimerPage(timerToEdit: timer),
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        _ActionIconButton(
+                          icon: Icons.delete_outline,
+                          tooltip: 'Delete Timer',
+                          color: colorScheme.error,
+                          onTap: () {
+                            showDialog(
+                              context: context,
+                              builder: (BuildContext dialogContext) {
+                                return AlertDialog(
+                                  title: const Text('Confirm Delete'),
+                                  content: Text(
+                                    'Are you sure you want to delete "${timer.name}"?',
+                                  ),
+                                  actions: <Widget>[
+                                    TextButton(
+                                      child: const Text('Cancel'),
+                                      onPressed: () {
+                                        Navigator.of(dialogContext).pop();
+                                      },
+                                    ),
+                                    TextButton(
+                                      style: TextButton.styleFrom(
+                                        foregroundColor: colorScheme.error,
+                                      ),
+                                      child: const Text('Delete'),
+                                      onPressed: () {
+                                        ref
+                                            .read(timerListProvider.notifier)
+                                            .removeTimer(timer.id);
+                                        Navigator.of(dialogContext).pop();
+                                      },
+                                    ),
+                                  ],
+                                );
+                              },
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  child: Text(
+                    displayedTime,
+                    key: ValueKey<String>(displayedTime),
+                    style: textTheme.displaySmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: colorScheme.primary,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        timer.alertUntilStopped
+                            ? 'Alert until stopped'
+                            : 'Single alert',
+                        style: textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                    _buildControlButtons(context, ref, timer, colorScheme),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: LinearProgressIndicator(
+                    value: 1.0 - progress.clamp(0.0, 1.0),
+                    minHeight: 6.0,
+                    backgroundColor: colorScheme.surfaceVariant.withOpacity(0.6),
+                    valueColor: AlwaysStoppedAnimation<Color>(statusColor),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -233,6 +307,43 @@ class TimerCardWidget extends ConsumerWidget {
     }
     return buttons.length == 1
         ? buttons.first
-        : Row(mainAxisSize: MainAxisSize.min, children: buttons);
+        : Wrap(
+            spacing: 4,
+            children: buttons,
+          );
   }
 }
+
+class _ActionIconButton extends StatelessWidget {
+  const _ActionIconButton({
+    required this.icon,
+    required this.tooltip,
+    required this.color,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: InkResponse(
+        radius: 24,
+        onTap: onTap,
+        child: Container(
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          padding: const EdgeInsets.all(10),
+          child: Icon(icon, color: color, size: 20),
+        ),
+      ),
+    );
+  }
+}
+
