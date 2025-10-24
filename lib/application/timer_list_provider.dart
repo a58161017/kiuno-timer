@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vibration/vibration.dart';
+
+import '../infrastructure/android_foreground_service.dart';
 import '../../../domain/entities/timer_model.dart';
 import '../../../domain/entities/timer_status.dart'; // 雖然這裡沒直接用，但 TimerModel 依賴它
 
@@ -52,6 +54,7 @@ class TimerListNotifier extends StateNotifier<List<TimerModel>> {
     }
     _activeTimers.clear();
     _audioPlayer.dispose();
+    AndroidForegroundService.stop();
     super.dispose();
   }
 
@@ -59,6 +62,7 @@ class TimerListNotifier extends StateNotifier<List<TimerModel>> {
     _stopContinuousAlert();
     state = [...state, timer];
     _saveTimers();
+    _updateForegroundServiceState();
   }
 
   void removeTimer(String timerId) {
@@ -69,6 +73,7 @@ class TimerListNotifier extends StateNotifier<List<TimerModel>> {
     _activeTimers.remove(timerId);
     state = state.where((timer) => timer.id != timerId).toList();
     _saveTimers();
+    _updateForegroundServiceState();
   }
 
   void startTimer(String timerId) {
@@ -96,6 +101,7 @@ class TimerListNotifier extends StateNotifier<List<TimerModel>> {
       timerToStart = timerToStart.copyWith(remainingDuration: timerToStart.totalDuration);
     }
     _updateTimerState(timerId, status: TimerStatus.running, remainingDuration: timerToStart.remainingDuration);
+    _updateForegroundServiceState();
     timerToStart = state.firstWhere((t) => t.id == timerId);
 
     _activeTimers[timerId] = Timer.periodic(const Duration(seconds: 1), (dartTimer) {
@@ -113,6 +119,7 @@ class TimerListNotifier extends StateNotifier<List<TimerModel>> {
         _activeTimers[timerId]?.cancel();
         _activeTimers.remove(timerId);
         _updateTimerState(timerId, remainingDuration: Duration.zero, status: TimerStatus.finished);
+        _updateForegroundServiceState();
 
         final finishedTimer = _findTimerById(timerId);
         if (finishedTimer.id.isNotEmpty && finishedTimer.alertUntilStopped) {
@@ -137,6 +144,7 @@ class TimerListNotifier extends StateNotifier<List<TimerModel>> {
     if (!timerToPause.isRunning) return;
 
     _updateTimerState(timerId, status: TimerStatus.paused);
+    _updateForegroundServiceState();
   }
 
   void resetTimer(String timerId) {
@@ -155,6 +163,7 @@ class TimerListNotifier extends StateNotifier<List<TimerModel>> {
       remainingDuration: timerToReset.totalDuration,
       status: TimerStatus.pending,
     );
+    _updateForegroundServiceState();
   }
 
   void editTimer(TimerModel updatedTimer) {
@@ -181,6 +190,7 @@ class TimerListNotifier extends StateNotifier<List<TimerModel>> {
           timerInList,
     ];
     _saveTimers();
+    _updateForegroundServiceState();
   }
 
   Future<void> _init() async {
@@ -389,6 +399,11 @@ class TimerListNotifier extends StateNotifier<List<TimerModel>> {
       _stopContinuousAlert();
       print("Continuous alert stopped by user for $timerId");
     }
+  }
+
+  void _updateForegroundServiceState() {
+    final runningTimers = state.where((timer) => timer.isRunning).length;
+    unawaited(AndroidForegroundService.syncWithActiveTimers(runningTimers));
   }
 
   void _stopContinuousAlert() {

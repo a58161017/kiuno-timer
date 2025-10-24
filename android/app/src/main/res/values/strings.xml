@@ -1,0 +1,9 @@
+<resources>
+    <string name="timer_service_title">計時器運作中</string>
+    <string name="timer_service_channel_name">計時器背景服務</string>
+    <string name="timer_service_channel_description">保持計時器在背景持續倒數</string>
+    <plurals name="timer_service_content">
+        <item quantity="one">目前有 %d 個計時器正在倒數</item>
+        <item quantity="other">目前有 %d 個計時器正在倒數</item>
+    </plurals>
+</resources>
