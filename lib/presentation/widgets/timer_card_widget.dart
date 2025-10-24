@@ -78,22 +78,10 @@ class TimerCardWidget extends ConsumerWidget {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              colorScheme.surface,
-              colorScheme.surfaceVariant.withOpacity(0.8),
-            ],
+            colors: [colorScheme.surface, colorScheme.surfaceVariant.withOpacity(0.8)],
           ),
-          boxShadow: [
-            BoxShadow(
-              color: colorScheme.shadow.withOpacity(0.08),
-              blurRadius: 24,
-              offset: const Offset(0, 16),
-            ),
-          ],
-          border: Border.all(
-            color: colorScheme.outlineVariant.withOpacity(0.4),
-            width: 1.2,
-          ),
+          boxShadow: [BoxShadow(color: colorScheme.shadow.withOpacity(0.08), blurRadius: 24, offset: const Offset(0, 16))],
+          border: Border.all(color: colorScheme.outlineVariant.withOpacity(0.4), width: 1.2),
         ),
         child: Material(
           color: Colors.transparent,
@@ -111,10 +99,7 @@ class TimerCardWidget extends ConsumerWidget {
                         children: [
                           Text(
                             timer.name,
-                            style: textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 0.2,
-                            ),
+                            style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold, letterSpacing: 0.2),
                             overflow: TextOverflow.ellipsis,
                           ),
                           const SizedBox(height: 6),
@@ -124,20 +109,15 @@ class TimerCardWidget extends ConsumerWidget {
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(statusIcon, color: statusColor, size: 16),
                                   const SizedBox(width: 6),
                                   Text(
-                                    timer.status.name.substring(0, 1).toUpperCase() +
-                                        timer.status.name.substring(1),
-                                    style: textTheme.labelMedium?.copyWith(
-                                      color: statusColor,
-                                      fontWeight: FontWeight.w600,
-                                    ),
+                                    timer.status.name.substring(0, 1).toUpperCase() + timer.status.name.substring(1),
+                                    style: textTheme.labelMedium?.copyWith(color: statusColor, fontWeight: FontWeight.w600),
                                   ),
                                 ],
                               ),
@@ -154,11 +134,7 @@ class TimerCardWidget extends ConsumerWidget {
                           tooltip: 'Edit Timer',
                           color: colorScheme.primary,
                           onTap: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (context) => AddTimerPage(timerToEdit: timer),
-                              ),
-                            );
+                            Navigator.of(context).push(MaterialPageRoute(builder: (context) => AddTimerPage(timerToEdit: timer)));
                           },
                         ),
                         const SizedBox(height: 12),
@@ -172,9 +148,7 @@ class TimerCardWidget extends ConsumerWidget {
                               builder: (BuildContext dialogContext) {
                                 return AlertDialog(
                                   title: const Text('Confirm Delete'),
-                                  content: Text(
-                                    'Are you sure you want to delete "${timer.name}"?',
-                                  ),
+                                  content: Text('Are you sure you want to delete "${timer.name}"?'),
                                   actions: <Widget>[
                                     TextButton(
                                       child: const Text('Cancel'),
@@ -183,14 +157,10 @@ class TimerCardWidget extends ConsumerWidget {
                                       },
                                     ),
                                     TextButton(
-                                      style: TextButton.styleFrom(
-                                        foregroundColor: colorScheme.error,
-                                      ),
+                                      style: TextButton.styleFrom(foregroundColor: colorScheme.error),
                                       child: const Text('Delete'),
                                       onPressed: () {
-                                        ref
-                                            .read(timerListProvider.notifier)
-                                            .removeTimer(timer.id);
+                                        ref.read(timerListProvider.notifier).removeTimer(timer.id);
                                         Navigator.of(dialogContext).pop();
                                       },
                                     ),
@@ -222,12 +192,8 @@ class TimerCardWidget extends ConsumerWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        timer.alertUntilStopped
-                            ? 'Alert until stopped'
-                            : 'Single alert',
-                        style: textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                        ),
+                        timer.alertUntilStopped ? 'Alert until stopped' : 'Single alert',
+                        style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
                       ),
                     ),
                     _buildControlButtons(context, ref, timer, colorScheme),
@@ -252,16 +218,11 @@ class TimerCardWidget extends ConsumerWidget {
   }
 
   /// Builds control buttons (play/pause/reset) based on timer state.
-  Widget _buildControlButtons(
-    BuildContext context,
-    WidgetRef ref,
-    TimerModel timer,
-    ColorScheme colorScheme,
-  ) {
+  Widget _buildControlButtons(BuildContext context, WidgetRef ref, TimerModel timer, ColorScheme colorScheme) {
     final notifier = ref.read(timerListProvider.notifier);
     final List<Widget> buttons = [];
 
-    if (timer.isPending || timer.isPaused || timer.isFinished) {
+    if (timer.isPending || timer.isPaused) {
       buttons.add(
         Tooltip(
           message: timer.isPaused ? 'Resume' : 'Start',
@@ -291,36 +252,35 @@ class TimerCardWidget extends ConsumerWidget {
     }
 
     if (!timer.isPending || timer.remainingDuration < timer.totalDuration) {
-      buttons.add(
-        Tooltip(
-          message: 'Reset',
-          child: IconButton(
-            icon: Icon(Icons.refresh, color: colorScheme.onSurface.withOpacity(0.7)),
-            onPressed: () => notifier.resetTimer(timer.id),
+      if (timer.alertUntilStopped && timer.remainingDuration.inMilliseconds == 0) {
+        buttons.add(
+          Tooltip(
+            message: 'Stop',
+            child: IconButton(icon: Icon(Icons.stop, color: colorScheme.error), onPressed: () => notifier.resetTimer(timer.id)),
           ),
-        ),
-      );
+        );
+      } else {
+        buttons.add(
+          Tooltip(
+            message: 'Reset',
+            child: IconButton(
+              icon: Icon(Icons.refresh, color: colorScheme.onSurface.withOpacity(0.7)),
+              onPressed: () => notifier.resetTimer(timer.id),
+            ),
+          ),
+        );
+      }
     }
 
     if (buttons.isEmpty) {
       return const SizedBox.shrink();
     }
-    return buttons.length == 1
-        ? buttons.first
-        : Wrap(
-            spacing: 4,
-            children: buttons,
-          );
+    return buttons.length == 1 ? buttons.first : Wrap(spacing: 4, children: buttons);
   }
 }
 
 class _ActionIconButton extends StatelessWidget {
-  const _ActionIconButton({
-    required this.icon,
-    required this.tooltip,
-    required this.color,
-    required this.onTap,
-  });
+  const _ActionIconButton({required this.icon, required this.tooltip, required this.color, required this.onTap});
 
   final IconData icon;
   final String tooltip;
@@ -335,10 +295,7 @@ class _ActionIconButton extends StatelessWidget {
         radius: 24,
         onTap: onTap,
         child: Container(
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.12),
-            borderRadius: BorderRadius.circular(12),
-          ),
+          decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(12)),
           padding: const EdgeInsets.all(10),
           child: Icon(icon, color: color, size: 20),
         ),
@@ -346,4 +303,3 @@ class _ActionIconButton extends StatelessWidget {
     );
   }
 }
-
