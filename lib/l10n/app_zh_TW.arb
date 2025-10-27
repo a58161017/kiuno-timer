@@ -1,0 +1,64 @@
+{
+  "@@locale": "zh_TW",
+  "appTitle": "Kiuno 計時器",
+  "timerListTitle": "我的計時器",
+  "welcomeBack": "歡迎回來",
+  "timerCount": "您共有 {count} 個計時器",
+  "@timerCount": {
+    "description": "顯示使用者擁有的計時器數量",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "emptyStateTitle": "建立第一個計時器",
+  "emptyStateDescription": "運動、專注或提醒都可以用漂亮的計時器來管理。",
+  "emptyStateAction": "新增計時器",
+  "deleteTimerTitle": "刪除計時器",
+  "deleteTimerMessage": "確定要刪除「{timerName}」嗎？",
+  "@deleteTimerMessage": {
+    "description": "刪除計時器前的確認訊息",
+    "placeholders": {
+      "timerName": {}
+    }
+  },
+  "cancelButton": "取消",
+  "deleteButton": "刪除",
+  "newTimerButton": "新增計時器",
+  "addTimerTitleNew": "新增計時器",
+  "addTimerTitleEdit": "編輯計時器",
+  "timerDetailsSection": "計時器詳細資訊",
+  "timerNameLabel": "計時器名稱",
+  "timerNameHint": "例如：專注時段",
+  "timerNameEmptyError": "請輸入計時器名稱",
+  "minutesLabel": "分鐘",
+  "secondsLabel": "秒",
+  "secondsRangeError": "範圍需為 0-59",
+  "alertUntilStoppedLabel": "持續提醒直到手動停止",
+  "alertUntilStoppedDescription": "會持續播放聲音與震動，直到您手動停止。",
+  "saveTimer": "儲存計時器",
+  "updateTimer": "更新計時器",
+  "singleAlertLabel": "提醒一次",
+  "resumeAction": "繼續",
+  "startAction": "開始",
+  "pauseAction": "暫停",
+  "stopAction": "停止",
+  "resetAction": "重設",
+  "editTimerTooltip": "編輯計時器",
+  "deleteTimerTooltip": "刪除計時器",
+  "timerStatusPending": "待開始",
+  "timerStatusRunning": "進行中",
+  "timerStatusPaused": "已暫停",
+  "timerStatusFinished": "已完成",
+  "timerStatusAlerting": "提醒中",
+  "notificationTimerFinishedTicker": "計時完成",
+  "notificationTimerFinishedTitle": "計時完成",
+  "notificationTimerFinishedBody": "{timerName} 已經結束",
+  "@notificationTimerFinishedBody": {
+    "description": "計時器完成通知的內文",
+    "placeholders": {
+      "timerName": {}
+    }
+  }
+}

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
+import 'application/locale_provider.dart';
 import 'presentation/screens/timer_list_page.dart';
 
 /// Entry point for the Kiuno Timer application.
@@ -12,17 +14,32 @@ void main() {
   runApp(const ProviderScope(child: MyApp()));
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends ConsumerWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     const seed = Color(0xFF6750A4);
     final baseTextTheme = ThemeData(brightness: Brightness.light).textTheme;
 
     return MaterialApp(
-      title: 'Kiuno Timer',
+      onGenerateTitle: (context) => AppLocalizations.of(context)!.appTitle,
       themeMode: ThemeMode.system,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      localeResolutionCallback: (locale, supportedLocales) {
+        Locale resolved = supportedLocales.first;
+        if (locale != null) {
+          resolved = supportedLocales.firstWhere(
+            (supported) =>
+                supported.languageCode == locale.languageCode &&
+                (supported.countryCode == null || supported.countryCode == locale.countryCode),
+            orElse: () => supportedLocales.first,
+          );
+        }
+        ref.read(currentLocaleProvider.notifier).state = resolved;
+        return resolved;
+      },
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(

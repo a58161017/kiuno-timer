@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vibration/vibration.dart';
@@ -10,6 +11,7 @@ import 'package:vibration/vibration.dart';
 import '../infrastructure/android_foreground_service.dart';
 import '../../../domain/entities/timer_model.dart';
 import '../../../domain/entities/timer_status.dart'; // 雖然這裡沒直接用，但 TimerModel 依賴它
+import 'locale_provider.dart';
 
 const String _timersStorageKey = 'kiuno_timers_list';
 const String _continuousAlertStopActionId = 'STOP_CONTINUOUS_ALERT';
@@ -37,10 +39,11 @@ class TimerListNotifier extends StateNotifier<List<TimerModel>> {
   String? _currentlyAlertingTimerId;
   bool _notificationsInitialized = false;
   static TimerListNotifier? _instance;
+  final Ref _ref;
 
   static TimerListNotifier? get instance => _instance;
 
-  TimerListNotifier() : super([]) {
+  TimerListNotifier(this._ref) : super([]) {
     _instance = this;
     _init();
     _audioPlayer.onPlayerComplete.listen((event) {
@@ -360,22 +363,25 @@ class TimerListNotifier extends StateNotifier<List<TimerModel>> {
     }
 
     try {
+      final locale = _ref.read(currentLocaleProvider);
+      final localizations = await AppLocalizations.delegate.load(locale);
+
       final AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
         _timerFinishedChannel.id,
         _timerFinishedChannel.name,
         channelDescription: _timerFinishedChannel.description,
         importance: Importance.max,
-        priority: Priority.max,
-        ticker: 'Timer finished',
+        priority: Priority.high,
+        ticker: localizations.notificationTimerFinishedTicker,
         autoCancel: !timer.alertUntilStopped,
         ongoing: timer.alertUntilStopped,
         category: AndroidNotificationCategory.alarm,
         fullScreenIntent: timer.alertUntilStopped,
         actions: timer.alertUntilStopped
-            ? const <AndroidNotificationAction>[
+            ? <AndroidNotificationAction>[
                 AndroidNotificationAction(
                   _continuousAlertStopActionId,
-                  'Stop',
+                  localizations.stopAction,
                   showsUserInterface: true, // 需要設定 true，否則無法處發 action callback
                   cancelNotification: true,
                 ),
@@ -394,8 +400,8 @@ class TimerListNotifier extends StateNotifier<List<TimerModel>> {
 
       await _localNotifications.show(
         timer.id.hashCode,
-        '計時完成',
-        '${timer.name} 已經結束',
+        localizations.notificationTimerFinishedTitle,
+        localizations.notificationTimerFinishedBody(timer.name),
         notificationDetails,
         payload: timer.id,
       );
@@ -500,6 +506,6 @@ class TimerListNotifier extends StateNotifier<List<TimerModel>> {
 }
 
 final timerListProvider = StateNotifierProvider<TimerListNotifier, List<TimerModel>>((ref) {
-  return TimerListNotifier();
+  return TimerListNotifier(ref);
 });
     

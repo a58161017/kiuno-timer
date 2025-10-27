@@ -1,0 +1,64 @@
+{
+  "@@locale": "en",
+  "appTitle": "Kiuno Timer",
+  "timerListTitle": "My Timers",
+  "welcomeBack": "Welcome back",
+  "timerCount": "{count, plural, one {You have {count} timer} other {You have {count} timers}}",
+  "@timerCount": {
+    "description": "Displays how many timers the user has",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "emptyStateTitle": "Create your first timer",
+  "emptyStateDescription": "Organise workouts, focus sessions or reminders with beautifully crafted timers.",
+  "emptyStateAction": "Add timer",
+  "deleteTimerTitle": "Delete Timer",
+  "deleteTimerMessage": "Are you sure you want to delete \"{timerName}\"?",
+  "@deleteTimerMessage": {
+    "description": "Confirmation message shown before deleting a timer",
+    "placeholders": {
+      "timerName": {}
+    }
+  },
+  "cancelButton": "Cancel",
+  "deleteButton": "Delete",
+  "newTimerButton": "New Timer",
+  "addTimerTitleNew": "Add New Timer",
+  "addTimerTitleEdit": "Edit Timer",
+  "timerDetailsSection": "Timer details",
+  "timerNameLabel": "Timer Name",
+  "timerNameHint": "E.g., Focus Session",
+  "timerNameEmptyError": "Please enter a timer name",
+  "minutesLabel": "Minutes",
+  "secondsLabel": "Seconds",
+  "secondsRangeError": "Enter a value between 0 and 59",
+  "alertUntilStoppedLabel": "Alert until stopped",
+  "alertUntilStoppedDescription": "Keeps playing sound and vibration until you manually stop it.",
+  "saveTimer": "Save Timer",
+  "updateTimer": "Update Timer",
+  "singleAlertLabel": "Single alert",
+  "resumeAction": "Resume",
+  "startAction": "Start",
+  "pauseAction": "Pause",
+  "stopAction": "Stop",
+  "resetAction": "Reset",
+  "editTimerTooltip": "Edit Timer",
+  "deleteTimerTooltip": "Delete Timer",
+  "timerStatusPending": "Pending",
+  "timerStatusRunning": "Running",
+  "timerStatusPaused": "Paused",
+  "timerStatusFinished": "Finished",
+  "timerStatusAlerting": "Alerting",
+  "notificationTimerFinishedTicker": "Timer finished",
+  "notificationTimerFinishedTitle": "Timer finished",
+  "notificationTimerFinishedBody": "{timerName} has completed",
+  "@notificationTimerFinishedBody": {
+    "description": "Body text for timer finished notification",
+    "placeholders": {
+      "timerName": {}
+    }
+  }
+}

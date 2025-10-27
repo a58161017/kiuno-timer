@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 import '../../../application/timer_list_provider.dart';
 import '../../../domain/entities/timer_model.dart';
@@ -31,6 +32,7 @@ class TimerCardWidget extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
     final TextTheme textTheme = Theme.of(context).textTheme;
+    final l10n = AppLocalizations.of(context)!;
 
     // Choose icon and color based on timer status.
     IconData statusIcon;
@@ -116,7 +118,7 @@ class TimerCardWidget extends ConsumerWidget {
                                   Icon(statusIcon, color: statusColor, size: 16),
                                   const SizedBox(width: 6),
                                   Text(
-                                    timer.status.name.substring(0, 1).toUpperCase() + timer.status.name.substring(1),
+                                    _statusLabel(timer.status, l10n),
                                     style: textTheme.labelMedium?.copyWith(color: statusColor, fontWeight: FontWeight.w600),
                                   ),
                                 ],
@@ -131,7 +133,7 @@ class TimerCardWidget extends ConsumerWidget {
                       children: [
                         _ActionIconButton(
                           icon: Icons.edit,
-                          tooltip: 'Edit Timer',
+                          tooltip: l10n.editTimerTooltip,
                           color: colorScheme.primary,
                           onTap: () {
                             Navigator.of(context).push(MaterialPageRoute(builder: (context) => AddTimerPage(timerToEdit: timer)));
@@ -140,25 +142,25 @@ class TimerCardWidget extends ConsumerWidget {
                         const SizedBox(height: 12),
                         _ActionIconButton(
                           icon: Icons.delete_outline,
-                          tooltip: 'Delete Timer',
+                          tooltip: l10n.deleteTimerTooltip,
                           color: colorScheme.error,
                           onTap: () {
                             showDialog(
                               context: context,
                               builder: (BuildContext dialogContext) {
                                 return AlertDialog(
-                                  title: const Text('Confirm Delete'),
-                                  content: Text('Are you sure you want to delete "${timer.name}"?'),
+                                  title: Text(l10n.deleteTimerTitle),
+                                  content: Text(l10n.deleteTimerMessage(timer.name)),
                                   actions: <Widget>[
                                     TextButton(
-                                      child: const Text('Cancel'),
+                                      child: Text(l10n.cancelButton),
                                       onPressed: () {
                                         Navigator.of(dialogContext).pop();
                                       },
                                     ),
                                     TextButton(
                                       style: TextButton.styleFrom(foregroundColor: colorScheme.error),
-                                      child: const Text('Delete'),
+                                      child: Text(l10n.deleteButton),
                                       onPressed: () {
                                         ref.read(timerListProvider.notifier).removeTimer(timer.id);
                                         Navigator.of(dialogContext).pop();
@@ -192,11 +194,13 @@ class TimerCardWidget extends ConsumerWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        timer.alertUntilStopped ? 'Alert until stopped' : 'Single alert',
+                        timer.alertUntilStopped
+                            ? l10n.alertUntilStoppedLabel
+                            : l10n.singleAlertLabel,
                         style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
                       ),
                     ),
-                    _buildControlButtons(context, ref, timer, colorScheme),
+                    _buildControlButtons(context, ref, timer, colorScheme, l10n),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -218,14 +222,20 @@ class TimerCardWidget extends ConsumerWidget {
   }
 
   /// Builds control buttons (play/pause/reset) based on timer state.
-  Widget _buildControlButtons(BuildContext context, WidgetRef ref, TimerModel timer, ColorScheme colorScheme) {
+  Widget _buildControlButtons(
+    BuildContext context,
+    WidgetRef ref,
+    TimerModel timer,
+    ColorScheme colorScheme,
+    AppLocalizations l10n,
+  ) {
     final notifier = ref.read(timerListProvider.notifier);
     final List<Widget> buttons = [];
 
     if (timer.isPending || timer.isPaused) {
       buttons.add(
         Tooltip(
-          message: timer.isPaused ? 'Resume' : 'Start',
+          message: timer.isPaused ? l10n.resumeAction : l10n.startAction,
           child: IconButton(
             icon: Icon(
               timer.isFinished || (timer.isPending && timer.remainingDuration == timer.totalDuration)
@@ -242,7 +252,7 @@ class TimerCardWidget extends ConsumerWidget {
     if (timer.isRunning) {
       buttons.add(
         Tooltip(
-          message: 'Pause',
+          message: l10n.pauseAction,
           child: IconButton(
             icon: Icon(Icons.pause, color: colorScheme.secondary),
             onPressed: () => notifier.pauseTimer(timer.id),
@@ -255,14 +265,14 @@ class TimerCardWidget extends ConsumerWidget {
       if (timer.alertUntilStopped && timer.remainingDuration.inMilliseconds == 0) {
         buttons.add(
           Tooltip(
-            message: 'Stop',
+            message: l10n.stopAction,
             child: IconButton(icon: Icon(Icons.stop, color: colorScheme.error), onPressed: () => notifier.resetTimer(timer.id)),
           ),
         );
       } else {
         buttons.add(
           Tooltip(
-            message: 'Reset',
+            message: l10n.resetAction,
             child: IconButton(
               icon: Icon(Icons.refresh, color: colorScheme.onSurface.withOpacity(0.7)),
               onPressed: () => notifier.resetTimer(timer.id),
@@ -276,6 +286,21 @@ class TimerCardWidget extends ConsumerWidget {
       return const SizedBox.shrink();
     }
     return buttons.length == 1 ? buttons.first : Wrap(spacing: 4, children: buttons);
+  }
+
+  String _statusLabel(TimerStatus status, AppLocalizations l10n) {
+    switch (status) {
+      case TimerStatus.pending:
+        return l10n.timerStatusPending;
+      case TimerStatus.running:
+        return l10n.timerStatusRunning;
+      case TimerStatus.paused:
+        return l10n.timerStatusPaused;
+      case TimerStatus.finished:
+        return l10n.timerStatusFinished;
+      case TimerStatus.alerting:
+        return l10n.timerStatusAlerting;
+    }
   }
 }
 
