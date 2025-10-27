@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:kiuno_timer/l10n/app_localizations.dart';
 
 import 'application/locale_provider.dart';
 import 'presentation/screens/timer_list_page.dart';
@@ -23,20 +23,13 @@ class MyApp extends ConsumerWidget {
     final baseTextTheme = ThemeData(brightness: Brightness.light).textTheme;
 
     return MaterialApp(
-      onGenerateTitle: (context) => AppLocalizations.of(context)!.appTitle,
+      onGenerateTitle: (context) =>
+          AppLocalizations.of(context)?.appTitle ?? 'Kiuno Timer',
       themeMode: ThemeMode.system,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       localeResolutionCallback: (locale, supportedLocales) {
-        Locale resolved = supportedLocales.first;
-        if (locale != null) {
-          resolved = supportedLocales.firstWhere(
-            (supported) =>
-                supported.languageCode == locale.languageCode &&
-                (supported.countryCode == null || supported.countryCode == locale.countryCode),
-            orElse: () => supportedLocales.first,
-          );
-        }
+        final resolved = AppLocalizations.resolveLocale(locale, supportedLocales);
         ref.read(currentLocaleProvider.notifier).state = resolved;
         return resolved;
       },

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:kiuno_timer/l10n/app_localizations.dart';
 
 import '../../../application/timer_list_provider.dart';
 import '../../../domain/entities/timer_model.dart';
