@@ -1,7 +1,7 @@
 {
   "@@locale": "en",
-  "appTitle": "Kiuno Timer",
-  "timerListTitle": "My Timers",
+  "appTitle": "Just Timer",
+  "timerListTitle": "Just Timer",
   "welcomeBack": "Welcome back",
   "timerCount": "{count, plural, one {You have {count} timer} other {You have {count} timers}}",
   "@timerCount": {

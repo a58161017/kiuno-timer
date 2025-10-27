@@ -30,7 +30,10 @@ class MyApp extends ConsumerWidget {
       supportedLocales: AppLocalizations.supportedLocales,
       localeResolutionCallback: (locale, supportedLocales) {
         final resolved = AppLocalizations.resolveLocale(locale, supportedLocales);
-        ref.read(currentLocaleProvider.notifier).state = resolved;
+        // 延遲狀態更新，避免在 build 期間寫入 Provider
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ref.read(currentLocaleProvider.notifier).state = resolved;
+        });
         return resolved;
       },
       theme: ThemeData(

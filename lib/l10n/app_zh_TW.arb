@@ -1,7 +1,7 @@
 {
   "@@locale": "zh_TW",
-  "appTitle": "Kiuno 計時器",
-  "timerListTitle": "我的計時器",
+  "appTitle": "就只是個計時器",
+  "timerListTitle": "就只是個計時器",
   "welcomeBack": "歡迎回來",
   "timerCount": "您共有 {count} 個計時器",
   "@timerCount": {

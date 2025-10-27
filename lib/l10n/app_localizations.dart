@@ -172,8 +172,8 @@ class _AppLocalizationsDelegate
 
 const Map<String, Map<String, String>> _localizedValues = {
   'en': {
-    'appTitle': 'Kiuno Timer',
-    'timerListTitle': 'My Timers',
+    'appTitle': 'Just Timer',
+    'timerListTitle': 'Just Timer',
     'welcomeBack': 'Welcome back',
     'emptyStateTitle': 'Create your first timer',
     'emptyStateDescription':
@@ -214,8 +214,8 @@ const Map<String, Map<String, String>> _localizedValues = {
     'notificationTimerFinishedTitle': 'Timer finished',
   },
   'zh_TW': {
-    'appTitle': 'Kiuno 計時器',
-    'timerListTitle': '我的計時器',
+    'appTitle': '就只是個計時器',
+    'timerListTitle': '就只是個計時器',
     'welcomeBack': '歡迎回來',
     'emptyStateTitle': '建立第一個計時器',
     'emptyStateDescription': '運動、專注或提醒都可以用漂亮的計時器來管理。',
