@@ -5,7 +5,7 @@ import 'package:kiuno_timer/l10n/app_localizations.dart';
 import 'application/locale_provider.dart';
 import 'presentation/screens/timer_list_page.dart';
 
-/// Entry point for the Kiuno Timer application.
+/// Entry point for the Just Timer application.
 ///
 /// This app uses Riverpod for state management and Material 3 for theming.
 /// It provides both light and dark themes based on the system setting.
@@ -24,7 +24,7 @@ class MyApp extends ConsumerWidget {
 
     return MaterialApp(
       onGenerateTitle: (context) =>
-          AppLocalizations.of(context)?.appTitle ?? 'Kiuno Timer',
+          AppLocalizations.of(context)?.appTitle ?? 'Just Timer',
       themeMode: ThemeMode.system,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,

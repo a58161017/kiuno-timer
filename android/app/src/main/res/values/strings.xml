@@ -1,9 +1,10 @@
 <resources>
-    <string name="timer_service_title">計時器運作中</string>
-    <string name="timer_service_channel_name">計時器背景服務</string>
-    <string name="timer_service_channel_description">保持計時器在背景持續倒數</string>
+    <string name="app_name">Just Timer</string>
+    <string name="timer_service_title">Timer running</string>
+    <string name="timer_service_channel_name">Timer background service</string>
+    <string name="timer_service_channel_description">Keep the timer counting down in the background</string>
     <plurals name="timer_service_content">
-        <item quantity="one">目前有 %d 個計時器正在倒數</item>
-        <item quantity="other">目前有 %d 個計時器正在倒數</item>
+        <item quantity="one">There are currently %d timers counting down.</item>
+        <item quantity="other">There are currently %d timers counting down.</item>
     </plurals>
 </resources>
