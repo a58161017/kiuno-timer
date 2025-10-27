@@ -8,6 +8,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../application/timer_list_provider.dart';
@@ -49,10 +50,12 @@ class _AddTimerPageState extends ConsumerState<AddTimerPage> {
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
 
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: Text(_timerToEdit != null ? 'Edit Timer' : 'Add New Timer'),
+        title: Text(_timerToEdit != null ? l10n.addTimerTitleEdit : l10n.addTimerTitleNew),
         centerTitle: true,
         elevation: 0,
         backgroundColor: Colors.transparent,
@@ -108,7 +111,7 @@ class _AddTimerPageState extends ConsumerState<AddTimerPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Timer details',
+                          l10n.timerDetailsSection,
                           style: textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
@@ -117,8 +120,8 @@ class _AddTimerPageState extends ConsumerState<AddTimerPage> {
                         TextFormField(
                           initialValue: _timerName,
                           decoration: InputDecoration(
-                            labelText: 'Timer Name',
-                            hintText: 'E.g., Focus Session',
+                            labelText: l10n.timerNameLabel,
+                            hintText: l10n.timerNameHint,
                             filled: true,
                             fillColor: colorScheme.surfaceVariant.withOpacity(0.35),
                             border: OutlineInputBorder(
@@ -127,7 +130,7 @@ class _AddTimerPageState extends ConsumerState<AddTimerPage> {
                           ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return 'Please enter a timer name';
+                              return l10n.timerNameEmptyError;
                             }
                             return null;
                           },
@@ -142,7 +145,7 @@ class _AddTimerPageState extends ConsumerState<AddTimerPage> {
                               child: TextFormField(
                                 initialValue: _inputMinutes?.toString(),
                                 decoration: InputDecoration(
-                                  labelText: 'Minutes',
+                                  labelText: l10n.minutesLabel,
                                   hintText: '0',
                                   filled: true,
                                   fillColor:
@@ -165,7 +168,7 @@ class _AddTimerPageState extends ConsumerState<AddTimerPage> {
                               child: TextFormField(
                                 initialValue: _inputSeconds?.toString(),
                                 decoration: InputDecoration(
-                                  labelText: 'Seconds',
+                                  labelText: l10n.secondsLabel,
                                   hintText: '0',
                                   filled: true,
                                   fillColor:
@@ -182,7 +185,7 @@ class _AddTimerPageState extends ConsumerState<AddTimerPage> {
                                   if (value != null && value.isNotEmpty) {
                                     final int? seconds = int.tryParse(value);
                                     if (seconds == null || seconds < 0 || seconds > 59) {
-                                      return '0-59';
+                                      return l10n.secondsRangeError;
                                     }
                                   }
                                   return null;
@@ -196,9 +199,9 @@ class _AddTimerPageState extends ConsumerState<AddTimerPage> {
                         ),
                         const SizedBox(height: 24),
                         SwitchListTile.adaptive(
-                          title: const Text('Alert until stopped'),
-                          subtitle: const Text(
-                            'Keeps playing sound and vibration until you manually stop it.',
+                          title: Text(l10n.alertUntilStoppedLabel),
+                          subtitle: Text(
+                            l10n.alertUntilStoppedDescription,
                           ),
                           value: _alertUntilStopped,
                           onChanged: (bool newValue) {
@@ -217,7 +220,7 @@ class _AddTimerPageState extends ConsumerState<AddTimerPage> {
                     onPressed: _submitForm,
                     icon: const Icon(Icons.save_outlined),
                     label: Text(
-                      _timerToEdit == null ? 'Save Timer' : 'Update Timer',
+                      _timerToEdit == null ? l10n.saveTimer : l10n.updateTimer,
                       style: textTheme.titleMedium,
                     ),
                   ),
