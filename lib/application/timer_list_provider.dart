@@ -376,7 +376,7 @@ class TimerListNotifier extends StateNotifier<List<TimerModel>> {
                 AndroidNotificationAction(
                   _continuousAlertStopActionId,
                   'Stop',
-                  showsUserInterface: false,
+                  showsUserInterface: true, // 需要設定 true，否則無法處發 action callback
                   cancelNotification: true,
                 ),
               ]
