@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:kiuno_timer/l10n/app_localizations.dart';
 
 import '../../../application/timer_list_provider.dart';
 import '../../../domain/entities/timer_model.dart';
@@ -22,10 +23,12 @@ class TimerListPage extends ConsumerWidget {
 
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
 
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       extendBody: true,
       appBar: AppBar(
-        title: const Text('My Timers'),
+        title: Text(l10n.timerListTitle),
         centerTitle: true,
         elevation: 0,
         backgroundColor: Colors.transparent,
@@ -64,14 +67,14 @@ class TimerListPage extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Welcome back',
+                      l10n.welcomeBack,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             color: colorScheme.onSurfaceVariant,
                           ),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'You have ${timers.length} timer${timers.length == 1 ? '' : 's'}',
+                      l10n.timerCount(timers.length),
                       style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
@@ -112,14 +115,14 @@ class TimerListPage extends ConsumerWidget {
                                   ),
                                   const SizedBox(height: 16),
                                   Text(
-                                    'Create your first timer',
+                                    l10n.emptyStateTitle,
                                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                                           fontWeight: FontWeight.bold,
                                         ),
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
-                                    'Organise workouts, focus sessions or reminders with beautifully crafted timers.',
+                                    l10n.emptyStateDescription,
                                     textAlign: TextAlign.center,
                                     style: Theme.of(context)
                                         .textTheme
@@ -136,7 +139,7 @@ class TimerListPage extends ConsumerWidget {
                                       );
                                     },
                                     icon: const Icon(Icons.add),
-                                    label: const Text('Add timer'),
+                                    label: Text(l10n.emptyStateAction),
                                   ),
                                 ],
                               ),
@@ -166,18 +169,16 @@ class TimerListPage extends ConsumerWidget {
                                   final result = await showDialog<bool>(
                                     context: context,
                                     builder: (context) => AlertDialog(
-                                      title: const Text('Delete Timer'),
-                                      content: Text(
-                                        'Are you sure you want to delete "${timer.name}"?',
-                                      ),
+                                      title: Text(l10n.deleteTimerTitle),
+                                      content: Text(l10n.deleteTimerMessage(timer.name)),
                                       actions: [
                                         TextButton(
                                           onPressed: () => Navigator.of(context).pop(false),
-                                          child: const Text('Cancel'),
+                                          child: Text(l10n.cancelButton),
                                         ),
                                         TextButton(
                                           onPressed: () => Navigator.of(context).pop(true),
-                                          child: const Text('Delete'),
+                                          child: Text(l10n.deleteButton),
                                         ),
                                       ],
                                     ),
@@ -215,7 +216,7 @@ class TimerListPage extends ConsumerWidget {
         backgroundColor: colorScheme.primary,
         foregroundColor: colorScheme.onPrimary,
         icon: const Icon(Icons.add),
-        label: const Text('New Timer'),
+        label: Text(l10n.newTimerButton),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
