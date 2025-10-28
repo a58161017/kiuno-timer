@@ -6,6 +6,7 @@ import '../../../application/timer_list_provider.dart';
 import '../../../domain/entities/timer_model.dart';
 import '../../../domain/entities/timer_status.dart';
 import '../screens/add_timer_page.dart';
+import '../screens/timer_detail_page.dart';
 
 /// A card widget that displays information about a single timer.
 ///
@@ -87,9 +88,20 @@ class TimerCardWidget extends ConsumerWidget {
         ),
         child: Material(
           color: Colors.transparent,
-          child: Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
+          child: InkWell(
+            borderRadius: BorderRadius.circular(28),
+            onTap: timer.isRunning
+                ? () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => TimerDetailPage(timerId: timer.id),
+                      ),
+                    );
+                  }
+                : null,
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
