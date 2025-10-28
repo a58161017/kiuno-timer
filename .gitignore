@@ -37,7 +37,6 @@ macos/Flutter/GeneratedPluginRegistrant.swift
 windows/flutter/ephemeral/
 
 # Web
-lib/generated_plugin_registrant.dart
 web/.dart_tool/
 
 # IDE / Editor

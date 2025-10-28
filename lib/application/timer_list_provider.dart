@@ -220,7 +220,7 @@ class TimerListNotifier extends StateNotifier<List<TimerModel>> {
 
   Future<void> _initializeNotifications() async {
     try {
-      const AndroidInitializationSettings androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+      const AndroidInitializationSettings androidSettings = AndroidInitializationSettings('icon_notification');
       final DarwinInitializationSettings iosSettings = DarwinInitializationSettings(
         requestAlertPermission: true,
         requestBadgePermission: true,
@@ -370,6 +370,7 @@ class TimerListNotifier extends StateNotifier<List<TimerModel>> {
         _timerFinishedChannel.id,
         _timerFinishedChannel.name,
         channelDescription: _timerFinishedChannel.description,
+        icon: 'icon_notification',
         importance: Importance.max,
         priority: Priority.high,
         ticker: localizations.notificationTimerFinishedTicker,
