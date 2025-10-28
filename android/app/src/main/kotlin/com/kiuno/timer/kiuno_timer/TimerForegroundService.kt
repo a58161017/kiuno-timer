@@ -1,4 +1,4 @@
-package com.kiuno.timer.kiuno_timer
+package kiuno.timer
 
 import android.app.Notification
 import android.app.NotificationChannel

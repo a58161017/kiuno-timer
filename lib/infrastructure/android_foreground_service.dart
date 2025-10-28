@@ -7,7 +7,7 @@ import 'package:flutter/services.dart';
 /// timers alive while the application is in the background.
 class AndroidForegroundService {
   static const MethodChannel _channel =
-      MethodChannel('com.kiuno.timer/foreground_service');
+      MethodChannel('kiuno.timer/foreground_service');
 
   /// Ensures that the foreground service reflects the number of active timers.
   ///

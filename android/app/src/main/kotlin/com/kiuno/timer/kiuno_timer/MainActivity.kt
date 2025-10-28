@@ -1,4 +1,4 @@
-package com.kiuno.timer.kiuno_timer
+package kiuno.timer
 
 import android.content.Intent
 import androidx.core.content.ContextCompat
@@ -7,7 +7,7 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
-    private val channelName = "com.kiuno.timer/foreground_service"
+    private val channelName = "kiuno.timer/foreground_service"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
